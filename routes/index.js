@@ -45,6 +45,7 @@ router.post('/login', function(req, res, next){
   })(req, res, next);
 });
 
+//find to populate all posts
 router.get('/posts', function(req, res, next){
 	Post.find(function(err, posts){
 		if(err) { next (err); }
@@ -53,8 +54,10 @@ router.get('/posts', function(req, res, next){
 	});
 });
 
-router.post('/posts', function(req, res, next){
+//user create a new post
+router.post('/posts', auth, function(req, res, next){
 	var post = new Post(req.body);
+	post.author = req.payload.username;
 
 	post.save(function(err, post){
 		if(err) { return next(err); }
@@ -63,6 +66,7 @@ router.post('/posts', function(req, res, next){
 	});
 });
 
+//preload post objects on routes with ':post'
 router.param('post', function(req, res, next, id) {
   var query = Post.findById(id);
 
@@ -75,6 +79,7 @@ router.param('post', function(req, res, next, id) {
   });
 });
 
+//preload comment objects on routes with ':comment'
 router.param('comment', function(req, res, next, id) {
   var query = Comment.findById(id);
 
@@ -87,13 +92,15 @@ router.param('comment', function(req, res, next, id) {
   });
 });
 
+//return a post
 router.get('/posts/:post', function(req, res) {
 	req.post.populate('comments', function(err, post){
 		res.json(req.post);
 	});
 });
 
-router.put('/posts/:post/upvote', function(req, res, next) {
+//upvote a post
+router.put('/posts/:post/upvote', auth, function(req, res, next) {
 	req.post.upvote(function(err, post) {
 		if(err) { return next(err); }
 
@@ -101,18 +108,11 @@ router.put('/posts/:post/upvote', function(req, res, next) {
 	});
 });
 
-router.put('/posts/:post/comments/:comment/upvote', function(req, res, next) {
-	req.comment.upvote(function(err, comment) {
-		if(err) { return next(err); }
-
-		res.json(comment);
-	});
-});
-
-
-router.post('/posts/:post/comments', function(req, res, next){
+//user create a new comment
+router.post('/posts/:post/comments', auth, function(req, res, next){
 	var comment = new Comment(req.body);
 	comment.post = req. post;
+	comment.author = req.payload.username;
 
 	comment.save(function(err, comment){
 		if(err) { return next(err); }
@@ -123,6 +123,15 @@ router.post('/posts/:post/comments', function(req, res, next){
 
 			res.json(comment);
 		});
+	});
+});
+
+//upvote a comment 
+router.put('/posts/:post/comments/:comment/upvote', auth, function(req, res, next) {
+	req.comment.upvote(function(err, comment) {
+		if(err) { return next(err); }
+
+		res.json(comment);
 	});
 });
 
